@@ -4,6 +4,7 @@ PAD=0, BOS=1, EOS=2; data tokens start at 3. No downloads required.
 """
 import argparse
 import random
+from pathlib import Path
 import torch
 import torch.nn.functional as F
 from transformer import Transformer
@@ -117,6 +118,26 @@ def main():
                   f'Val loss: {val_loss:.4f} | Token acc: {accuracy:.1%} | '
                   f'Greedy exact: {exact:.1%}', flush=True)
     print('Held-out autoregressive examples (EOS=2):')
+        # Save model weights and the configuration needed to load them.
+    save_path = Path("checkpoints/step9_copy_task.pth")
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+
+    torch.save({
+        "model_state_dict": model.state_dict(),
+        "model_config": {
+            "src_vocab_size": vocab_size,
+            "tgt_vocab_size": vocab_size,
+            "d_model": 64,
+            "num_heads": 4,
+            "d_ff": 128,
+            "num_layers": 2,
+            "max_len": max_len + 3,
+            "padding_idx": PAD,
+        },
+        "epochs": args.epochs,
+    }, save_path)
+
+    print(f"Model saved to: {save_path.resolve()}")
     for row in validation[:5]:
         src, _, _ = collate([row], device)
         prediction = greedy_decode(model, src, max_len + 1)[0].tolist()
